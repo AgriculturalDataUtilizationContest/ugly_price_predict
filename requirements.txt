@@ -48,3 +48,4 @@ uvicorn==0.34.3
 watchfiles==1.1.0
 websockets==15.0.1
 wordcloud==1.9.4
+uvicorn[standard]==0.34.3
