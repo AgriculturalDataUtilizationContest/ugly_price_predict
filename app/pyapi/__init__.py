@@ -1,6 +1,9 @@
 '''
 실행 순서!
 
+일단 dockefile에서 실행이 안 되어서 뺀 pip 실행하기
+pip
+
 /pyapi/kamis 로 매일매일 데이터 불러와야함. (00시 00분마다 실행)
 -> 이 api에서 요청하는 parameter는 start_dt, end_dt
 (안 보내주어도 작동 되도록 했음.)
