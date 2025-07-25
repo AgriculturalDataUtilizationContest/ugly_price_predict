@@ -117,13 +117,22 @@ def get_kamis_data(start_dt: str, end_dt: str) -> pd.DataFrame:
 
     idx = pd.date_range(start_dt, end_dt, freq='B')
     parts = []
-    for (code, rank), grp in df.groupby(['품목코드','등급코드']):
-        ts = grp.drop_duplicates('full_date').set_index('full_date')['가격']
-        ts = ts.reindex(idx).ffill().bfill()
-        tmp = ts.reset_index().rename(columns={'index':'dt','가격':'v'})
+    
+    df_grouped = (
+        df.groupby(['품목코드', '등급코드', 'full_date'])['가격']
+        .mean()
+        .round(0)
+        .astype(int)
+        .reset_index()
+    )
+	
+    for (code, rank), grp in df_grouped.groupby(['품목코드', '등급코드']):
+	ts = grp.set_index('full_date')['가격']
+	ts = ts.reindex(idx).ffill().bfill()
+	tmp = ts.reset_index().rename(columns={'index': 'dt', '가격': 'v'})
         tmp['grain_id'] = f"{code}_{rank}"
-        parts.append(tmp[['grain_id','dt','v']])
-
+        parts.append(tmp[['grain_id', 'dt', 'v']])
+   
     df_final = pd.concat(parts, ignore_index=True).sort_values(['grain_id','dt'])
     df_final.to_parquet('kamis.parquet', index=False)
     return df_final
