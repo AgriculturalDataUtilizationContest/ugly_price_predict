@@ -42,7 +42,7 @@ def predict_grain(req: PredictRequest):
         "start_dt": start_dt.isoformat(),
         "end_dt":   end_dt.isoformat(),
         "model":    "LSTM",
-        "seq_len":  5,
+        "seq_len":  10,
         "pred_len": 5,
         "freq":     "D",
         "train_grain_ids": req.grain_id,
