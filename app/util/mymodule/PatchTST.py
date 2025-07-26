@@ -2,8 +2,8 @@ __all__ = ["PatchTST"]
 
 from typing import Optional
 from torch import nn, Tensor
-from app.util.mymodule.PatchTST_backbone import PatchTST_backbone
-from app.util.mymodule.PatchTST_layers import series_decomp
+from .PatchTST_backbone import PatchTST_backbone
+from .PatchTST_layers import series_decomp
 
 
 class PatchTST(nn.Module):

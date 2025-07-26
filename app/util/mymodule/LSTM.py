@@ -26,7 +26,11 @@ class LSTM(nn.Module):
         )
 
         # Linear Decoder: [hidden_dim] -> [pred_len, in_features]
-        self.decoder = nn.Linear(self.hidden_dim, self.pred_len * self.in_features)
+        self.decoder = nn.Sequential(
+            nn.Linear(self.hidden_dim, self.pred_len * self.in_features),
+            nn.BatchNorm1d(self.pred_len * self.in_features),  # 또는 LayerNorm
+            nn.ReLU(),  # 선택 사항
+        )
 
     def forward(self, x):
         # x: [Batch, Input length, Channel] -> [32, 25, 6]
