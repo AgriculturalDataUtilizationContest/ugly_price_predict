@@ -13,9 +13,9 @@ class NLinear_block(nn.Module):
     """
     def __init__(self, configs):
         super(NLinear_block, self).__init__()
-        self.seq_len = configs.seq_len
-        self.pred_len = configs.pred_len
-        self.fcst_type = configs.fcst_type
+        self.seq_len = configs['seq_len']
+        self.pred_len = configs['pred_len']
+        self.fcst_type = configs['fcst_type']
         self.fcstLinear = nn.Linear(self.seq_len, self.pred_len)
         self.bcstLinear = nn.Linear(self.seq_len, self.seq_len)
         # Use this line if you want to visualize the weights
