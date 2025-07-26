@@ -59,8 +59,8 @@ def run_all_predictions():
             configs = {
                 "start_dt": start_dt,
                 "end_dt": end_dt,
-                "model": "LSTM",
-                "seq_len": 5,
+                "model": "decbcstLSTM",
+                "seq_len": 10,
                 "pred_len": 5,
                 "freq": "D",
                 "train_grain_ids": gid,

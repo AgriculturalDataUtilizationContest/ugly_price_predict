@@ -126,11 +126,11 @@ def get_kamis_data(start_dt: str, end_dt: str) -> pd.DataFrame:
         .astype(int)
         .reset_index()
     )
-	
+
     for (code, rank), grp in df_grouped.groupby(['품목코드', '등급코드']):
-	ts = grp.set_index('full_date')['가격']
-	ts = ts.reindex(idx).ffill().bfill()
-	tmp = ts.reset_index().rename(columns={'index': 'dt', '가격': 'v'})
+        ts = grp.set_index('full_date')['가격']
+        ts = ts.reindex(idx).ffill().bfill()
+        tmp = ts.reset_index().rename(columns={'index': 'dt', '가격': 'v'})
         tmp['grain_id'] = f"{code}_{rank}"
         parts.append(tmp[['grain_id', 'dt', 'v']])
    

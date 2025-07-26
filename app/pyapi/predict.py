@@ -56,7 +56,7 @@ def predict_grain(req: PredictRequest):
     configs = {
         "start_dt": start_dt.isoformat(),
         "end_dt":   end_dt.isoformat(),
-        "model":    "LSTM",
+        "model":    "decbcstLSTM",
         "seq_len":  10,
         "pred_len": 5,
         "freq":     "D",
