@@ -5,6 +5,7 @@ from requests.adapters import HTTPAdapter, Retry
 import pandas as pd
 from app.core.config import settings
 import time
+import pytz
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -158,7 +159,12 @@ def read_kamis(
     end_dt: Optional[datetime.date] = Query(
         None, description="종료일 (YYYY-MM-DD). 미지정 시 오늘")
 ):
-    today = datetime.date.today()
+    #    now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+
+    kst = pytz.timezone('Asia/Seoul')
+    now = datetime.datetime.now(kst)
+
+    today = now.date()
     if end_dt is None:
         end_dt = today
     if start_dt is None:

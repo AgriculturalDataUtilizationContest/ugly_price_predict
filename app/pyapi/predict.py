@@ -1,39 +1,54 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import date
+import datetime
+# from datetime import date
+import pytz
 from dateutil.relativedelta import relativedelta
-import pandas as pd   # ← rename·타입 변환용
+import pandas as pd  # ← rename·타입 변환용
 import os
 from app.util.predict import predict_future
 
 router = APIRouter()
 
+
 # ---------- 요청·응답 모델 ----------
 class PredictRequest(BaseModel):
     grain_id: str
-    start_dt: Optional[date] = None
-    end_dt:   Optional[date] = None
-    dt:       Optional[date] = None
+    start_dt: Optional[datetime.date] = None
+    end_dt: Optional[datetime.date] = None
+    dt: Optional[datetime.date] = None
+
 
 class PredictionRecord(BaseModel):
-    dt: str   # ISO-8601 날짜 문자열
+    dt: str  # ISO-8601 날짜 문자열
     v: float  # 예측값
+
 
 class PredictResponse(BaseModel):
     data: List[PredictionRecord]
+
 
 # ---------- 라우터 ----------
 @router.post("/predict", response_model=PredictResponse, tags=["predict"])
 def predict_grain(req: PredictRequest):
     # 0) 날짜 기본값 처리
-    today = date.today()
-    end_dt   = today
+    #    now = datetime.datetime.now()
+
+    kst = pytz.timezone('Asia/Seoul')
+    now = datetime.datetime.now(kst)
+
+    if now.hour < 15:
+        today = now.date() - datetime.timedelta(days=1)
+    else:
+        today = now.date()
+
+    end_dt = today
     start_dt = (today - relativedelta(months=1))
-    dt       = end_dt
+    dt = end_dt
 
     # 1) 모델 파일 경로
-    ckpt_path = f"./models/LSTM_{req.grain_id}.pth"
+    ckpt_path = f"./models/decbcstLSTM_{req.grain_id}.pth"
     if not os.path.exists(ckpt_path):
         raise HTTPException(404, f"모델 파일이 없습니다: {ckpt_path}")
 
@@ -76,6 +91,3 @@ def predict_grain(req: PredictRequest):
 
     except Exception as e:
         raise HTTPException(500, f"예측 중 오류: {e}")
-
-
-

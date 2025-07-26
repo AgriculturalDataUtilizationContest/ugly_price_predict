@@ -2,8 +2,9 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List
-from datetime import date, timedelta
-import os, torch
+#from datetime import date, timedelta
+import os, torch, datetime
+import pytz
 
 from app.util.predict import predict_future    # ← 기존 모델 예측 함수 그대로 사용
 
@@ -38,9 +39,18 @@ def run_all_predictions():
     • today(포함) 기준 1 달 전(start_dt) ~ today(end_dt) 구간 예측
     • 모든 grain_id 대해 순차 실행 → `./results/{grain_id}_{end_dt}.csv` 저장
     """
-    today = date.today()
-    start_dt = (today - timedelta(days=30)).isoformat()
-    end_dt   = today.isoformat()
+#    today = date.today()
+
+    kst = pytz.timezone('Asia/Seoul')
+    now = datetime.datetime.now(kst)
+ #   now = datetime.datetime.now()
+    if now.hour < 15:
+        today = now.date() - datetime.timedelta(days=1)
+    else:
+        today = now.date()
+
+    start_dt = (today - datetime.timedelta(days=30)).isoformat()
+    end_dt = today.isoformat()
 
     saved_files: List[PredFile] = []
 
@@ -48,29 +58,29 @@ def run_all_predictions():
         try:
             configs = {
                 "start_dt": start_dt,
-                "end_dt":   end_dt,
-                "model":    "LSTM",
-                "seq_len":  5,
+                "end_dt": end_dt,
+                "model": "LSTM",
+                "seq_len": 5,
                 "pred_len": 5,
-                "freq":     "D",
+                "freq": "D",
                 "train_grain_ids": gid,
                 "input": {
                     "target_path": "./app/data/retail.parquet",
-                    "exo_path":    "./app/data/weather.parquet",
+                    "exo_path": "./app/data/weather.parquet",
                 },
                 "target": "v",
                 "x_features": {
-                    "direct_horizon_1": ["TA_AVG","RN_DAY","HM_AVG","SS_DAY","WS_AVG"]
+                    "direct_horizon_1": ["TA_AVG", "RN_DAY", "HM_AVG", "SS_DAY", "WS_AVG"]
                 },
                 "dt": end_dt,
                 "device": str(DEVICE),
             }
 
-            ckpt_path = f"./app/models/LSTM_{gid}.pth"
+            ckpt_path = f"./app/models/decbcstLSTM_{gid}.pth"
             if not os.path.exists(ckpt_path):
                 raise FileNotFoundError(f"모델 없음: {ckpt_path}")
 
-            df_pred = predict_future(configs, ckpt_path)   # ← 예측 실행
+            df_pred = predict_future(configs, ckpt_path)  # ← 예측 실행
             out = f"./app/results/{gid}_{end_dt}.csv"
             os.makedirs(os.path.dirname(out), exist_ok=True)
             df_pred.to_csv(out, index=False)

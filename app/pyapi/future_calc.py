@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException
 from typing import List, Optional
-from datetime import date
+#from datetime import date
+import datetime
 import pandas as pd
 import os
+import pytz
 from pydantic import BaseModel
 
 # 라우터 인스턴스
@@ -57,7 +59,18 @@ def calculate_ugly(item_number: str, dt: str) -> pd.DataFrame:
 @router.get("/future_calc/{grain_id}", response_model=List[UglyResponse], tags=["future_calc"])
 def get_ugly_result(grain_id: str):
     try:
-        dt = date.today().isoformat()
+#        dt = date.today().isoformat()
+      #  now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)  # 한국시간
+
+
+        kst = pytz.timezone('Asia/Seoul')
+        now = datetime.datetime.now(kst)
+
+        if now.hour < 15:
+            dt = (now.date() - datetime.timedelta(days=1)).isoformat()
+        else:
+            dt = now.date().isoformat()
+
         df_result = calculate_ugly(grain_id, dt)
         df_result['date'] = pd.to_datetime(df_result['date']).dt.strftime('%Y-%m-%d')
         return df_result.to_dict(orient="records")

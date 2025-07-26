@@ -9,7 +9,7 @@ import os
 router = APIRouter()
 
 # Spring Boot 파일 업로드 엔드포인트
-SPRING_IMAGE_URL = "http://localhost:8080/api/image"
+SPRING_IMAGE_URL = "https://seunghwan.shop/api/image"
 font_path = os.path.join(os.path.dirname(__file__), "../font/NotoSansKR-Regular.ttf")
 font_path = os.path.abspath(font_path)
 
@@ -53,3 +53,4 @@ def generate_and_upload(cropName: str):
     # 만약 Spring이 plain text로 URL만 돌려준다면 resp.text, JSON이라면 resp.json()
     s3_url = resp.json().get("url") if resp.headers.get("content-type","").startswith("application/json") else resp.text
     return {s3_url}
+

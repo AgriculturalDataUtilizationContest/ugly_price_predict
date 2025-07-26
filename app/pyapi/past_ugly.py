@@ -2,7 +2,9 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException, Path
 from pydantic import BaseModel
 from typing import List
-from datetime import date
+#from datetime import date
+import datetime
+import pytz
 
 router = APIRouter()
 
@@ -50,7 +52,7 @@ def past_ugly(grain_id: int) -> pd.DataFrame:
             missing.append(f"{grain_id}_05")
         raise ValueError(f"다음 등급 데이터가 없습니다: {', '.join(missing)}")
 
-    # 5) 등급별 시계열 분리
+        # 5) 등급별 시계열 분리
     val_4 = (
         df_filtered
         .loc[df_filtered['grain_id'] == f"{grain_id}_04", ['dt', 'v']]
@@ -67,14 +69,16 @@ def past_ugly(grain_id: int) -> pd.DataFrame:
     if merged.empty:
         raise ValueError("등급 4와 5의 공통 날짜가 없습니다.")
     merged['decline_ratio'] = merged['v_4'] / merged['v_5']
-    merged['ugly_cost']     = merged['decline_ratio'] * orig_cost
-    merged['dt']            = pd.to_datetime(merged['dt']).dt.date
+    merged['ugly_cost'] = merged['decline_ratio'] * orig_cost
+    merged['dt'] = pd.to_datetime(merged['dt']).dt.date
 
     return merged
 
-# Pydantic 모델
+    # Pydantic 모델
+
+
 class UglyRecord(BaseModel):
-    dt: date
+    dt: datetime.date
     v_4: float
     v_5: float
     decline_ratio: float
@@ -102,23 +106,45 @@ def read_past_ugly(grain_id: int = Path(..., description="품목 코드 (예: 15
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"알 수 없는 오류 발생: {e}")
 
-
 @router.get("/today_v5/{grain_id}", tags=["ugly"])
 def get_today_v5(grain_id: int = Path(..., description="품목 코드 (예: 151)")):
     """
     grain_id에 해당하는 오늘 날짜의 v_5 값을 반환합니다.
+    - 오전 15시 이전이면 하루 전 날짜 사용
+    - 주말이면 가장 가까운 금요일 기준
+    - 해당 날짜에 데이터가 없으면 가장 최근 날짜 사용
     """
     try:
         df = past_ugly(grain_id)
-        today = date.today()
+        df['dt'] = pd.to_datetime(df['dt']).dt.date
 
-        today_row = df.loc[df['dt'] == today]
 
-        if today_row.empty:
-            raise HTTPException(status_code=404, detail=f"{today} 날짜에 대한 데이터가 없습니다.")
+        kst = pytz.timezone('Asia/Seoul')
+        now = datetime.datetime.now(kst)
+#        now = datetime.datetime.now()
 
-        v5_value = float(today_row['v_5'].values[0])
-        return {"v_5": v5_value}
+        # ✅ 1. 먼저 base_date 정의
+        if now.hour < 15:
+            base_date = now.date() - datetime.timedelta(days=1)
+        else:
+            base_date = now.date()
+
+        # ✅ 2. 주말 보정 처리 (base_date 기준)
+        if base_date.weekday() == 5:      # Saturday
+            target_date = base_date - datetime.timedelta(days=1)
+        elif base_date.weekday() == 6:    # Sunday
+            target_date = base_date - datetime.timedelta(days=2)
+        else:
+            target_date = base_date
+
+        # ✅ 3. target_date에 해당하는 row 있는지 확인
+        today_row = df[df['dt'] == target_date]
+        if not today_row.empty:
+            return {"v_5": float(today_row['v_5'].values[0])}
+
+        # ✅ 4. 없으면 fallback: 가장 최근 날짜
+        latest_row = df.sort_values("dt", ascending=False).iloc[0]
+        return {"v_5": float(latest_row['v_5'])}
 
     except FileNotFoundError as fnf:
         raise HTTPException(status_code=500, detail=str(fnf))
@@ -128,3 +154,5 @@ def get_today_v5(grain_id: int = Path(..., description="품목 코드 (예: 151)
         raise HTTPException(status_code=500, detail=str(re))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"알 수 없는 오류 발생: {e}")
+
+
