@@ -127,14 +127,38 @@ def get_kamis_data(start_dt: str, end_dt: str) -> pd.DataFrame:
         .reset_index()
     )
 
+    # 상추 중품 비율 생성
+    평균_비율 = 0.6546
+    df_sangchu_04 = df_grouped[df_grouped['품목코드'] == '214'].copy()
+    df_sangchu_05 = df_sangchu_04.copy()
+    df_sangchu_05['등급코드'] = '05'
+    df_sangchu_05['등급코드명'] = '중품'
+    df_sangchu_05['가격'] = (df_sangchu_05['가격'] * 평균_비율).round(0).astype(int)
+
+    df_grouped = pd.concat([df_grouped, df_sangchu_05], ignore_index=True)
+
+    # 나머지 '중품' 등급 실제 평균 추가**
+    etc_grouped = (
+        df[df['등급코드'] == '05']
+        .groupby(['품목코드', '등급코드', 'full_date'])['가격']
+        .mean().round(0).astype(int).reset_index()
+    )
+    df_grouped = pd.concat([df_grouped, etc_grouped], ignore_index=True)
+
+    # 시계열 재정렬 및 보간
     for (code, rank), grp in df_grouped.groupby(['품목코드', '등급코드']):
-        ts = grp.set_index('full_date')['가격']
+        grp = grp.groupby('full_date', as_index=False)['가격'].mean()
+        grp['가격'] = grp['가격'].round(0).astype(int)
+        
+        ts = grp.set_index('full_date').sort_index()
         ts = ts.reindex(idx).ffill().bfill()
         tmp = ts.reset_index().rename(columns={'index': 'dt', '가격': 'v'})
         tmp['grain_id'] = f"{code}_{rank}"
         parts.append(tmp[['grain_id', 'dt', 'v']])
-   
+
     df_final = pd.concat(parts, ignore_index=True).sort_values(['grain_id','dt'])
+
+    # 저장
     df_final.to_parquet('kamis.parquet', index=False)
     return df_final
 
